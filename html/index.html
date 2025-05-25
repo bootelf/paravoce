@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Envelope Animado</title>
+    <style>
+        body {
+            background: #ffe6eb;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .envelope {
+            width: 300px;
+            height: 160px;
+            position: relative;
+            perspective: 1000px;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .flap {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: red;
+            clip-path: polygon(0 0, 100% 0, 50% 50%);
+            transform-origin: top center;
+            transition: transform 0.5s ease;
+            z-index: 2;
+        }
+
+        .body {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: pink;
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+            z-index: 1;
+        }
+
+        .message {
+            position: absolute;
+            top: 25px;
+            left: 15px;
+            right: 15px;
+            color: #000;
+            font-weight: bold;
+            text-align: center;
+            opacity: 0; /* Inicialmente escondido */
+            transform: translateY(-20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            z-index: 3;
+            font-size: 14px;
+            white-space: pre-wrap;
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .open .flap {
+            transform: rotateX(180deg);
+        }
+
+        .open .message {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .heart-button {
+            padding: 8px 16px;
+            border: none;
+            background: url('path_to_heart_image.png') no-repeat center center;
+            background-size: contain;
+            cursor: pointer;
+            width: 50px;  
+            height: 50px;
+        }
+
+        .heart-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .heart {
+            font-size: 60px;
+            color: red;
+            transition: transform 0.5s ease;
+            margin-bottom: 10px; /* Espaçamento abaixo do coração */
+        }
+
+        .percentage {
+            font-size: 24px;
+            color: black;
+            text-align: center;
+            margin-top: 10px; /* Maior espaçamento do percentual */
+        }
+    </style>
+</head>
+<body>
+    <div class="envelope" id="envelope" tabindex="0">
+        <div class="flap" id="flap"></div>
+        <div class="body"></div>
+        <div class="message" id="message"></div>
+    </div>
+    <div class="buttons">
+        <button id="openBtn" class="heart-button">Open</button>
+        <button id="nextBtn" class="heart-button" disabled>Next</button>
+        <button id="restartBtn" class="heart-button" disabled>Reset</button>
+    </div>
+    <div class="heart" id="heart">❤️</div>
+    <div class="percentage" id="percentage">0%</div>
+    
+    <script>
+        const envelope = document.getElementById('envelope');
+        const flap = document.getElementById('flap');
+        const openBtn = document.getElementById('openBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const messageArea = document.getElementById('message');
+        const heart = document.getElementById('heart');
+        const percentageDisplay = document.getElementById('percentage');
+        
+        const messages = [
+            `Eu te acho insuportável, mas você é engraçada e tem boas fofocas.`,
+            `Quando penso em você, meu mundo se enche de trevas, começa a chover, mas não é bom.`,
+            `Calada você é uma poeta.`,
+            `Mesmo você sendo corna, você é uma querida.`,
+            `Obrigado por sua mãe e pagar todo mês, isso ajuda a pagar as contas, obrigado mesmo. Meu coração é bom para aceitar você como minha amiga.`
+        ];
+        
+        let index = 0;
+        let isOpen = false;
+
+        function updateHeart() {
+            const percent = ((index + 1) / messages.length) * 100;
+            percentageDisplay.textContent = Math.round(percent) + '%';
+            heart.style.transform = `scale(${1 + (percent / 100)})`; 
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function openEnvelope() {
+            envelope.classList.add('open');
+            isOpen = true;
+            await sleep(500); // Sincronizado com a nova duração
+            messageArea.textContent = messages[index];
+            await sleep(100); // Aguardar a animação do envelope
+            messageArea.style.opacity = 1; // Mostrar mensagem
+            updateHeart();
+        }
+
+        async function closeEnvelope() {
+            messageArea.style.opacity = 0; // Esconder mensagem
+            envelope.classList.remove('open');
+            isOpen = false;
+            await sleep(500); // Sincronizado com a nova duração
+        }
+
+        openBtn.addEventListener('click', async () => {
+            await openEnvelope();
+            nextBtn.disabled = false;
+            restartBtn.disabled = true;
+        });
+
+        nextBtn.addEventListener('click', async () => {
+            if (index < messages.length - 1) {
+                nextBtn.disabled = true;
+                restartBtn.disabled = true;
+                await closeEnvelope(); // Fechar envelope antes de abrir o próximo
+                index++;
+                await openEnvelope();
+                nextBtn.disabled = (index === messages.length - 1);
+                restartBtn.disabled = false;
+            }
+        });
+
+        restartBtn.addEventListener('click', async () => {
+            nextBtn.disabled = true;
+            restartBtn.disabled = true;
+            await closeEnvelope();
+            index = 0;
+            await openEnvelope();
+            nextBtn.disabled = false;
+            restartBtn.disabled = true;
+        });
+
+        flap.addEventListener('click', async () => {
+            if (!isOpen) {
+                openBtn.click();
+            }
+        });
+
+        flap.addEventListener('keydown', async (e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && !isOpen) {
+                e.preventDefault();
+                openBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
